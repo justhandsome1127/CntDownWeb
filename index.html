@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>倒數計時器 (靜音版)</title>
+  <style>
+    /* ========= 倒數計時器（原本樣式） ========= */
+    :root {
+      --bg-color: #1a1a1a;
+      --text-color: #ffffff;
+      --accent-color: #3b82f6;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --card-bg: #2d2d2d;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    .container {
+      text-align: center;
+      width: 90%;
+      max-width: 800px;
+      transition: max-width 0.3s;
+      position: relative;
+      z-index: 1;
+    }
+
+    .timer-wrapper {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      margin-bottom: 30px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      overflow: hidden;
+    }
+
+    #title-display {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      border-bottom: 2px solid transparent;
+      padding: 5px 10px;
+      display: inline-block;
+      cursor: text;
+    }
+    #title-display:focus {
+      outline: none;
+      border-bottom: 2px solid var(--accent-color);
+    }
+
+    #countdown-display {
+      display: none;
+      font-family: "Courier New", Courier, monospace;
+      font-weight: bold;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+      font-size: clamp(3rem, 12vw, 6.5rem);
+    }
+
+    :fullscreen {
+      background-color: var(--bg-color);
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    :fullscreen .container {
+      width: 100%;
+      max-width: none;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    :fullscreen .timer-wrapper {
+      background: transparent;
+      box-shadow: none;
+      width: 100%;
+      flex: 1;
+      border-radius: 0;
+    }
+
+    :fullscreen #countdown-display {
+      font-size: min(15vw, 35vh);
+    }
+
+    :fullscreen .controls,
+    :fullscreen .presets,
+    :fullscreen #title-display,
+    :fullscreen .fullscreen-btn {
+      opacity: 0.2;
+      transition: opacity 0.3s;
+    }
+    :fullscreen:hover .controls,
+    :fullscreen:hover .presets,
+    :fullscreen:hover #title-display,
+    :fullscreen:hover .fullscreen-btn {
+      opacity: 1;
+    }
+
+    .input-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    input[type="number"] {
+      background: #3d3d3d;
+      border: 2px solid #555;
+      color: white;
+      font-size: 3rem;
+      width: 100px;
+      text-align: center;
+      border-radius: 10px;
+      padding: 10px;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    .label {
+      font-size: 1rem;
+      color: #aaa;
+      margin-top: 5px;
+    }
+    .separator {
+      font-size: 3rem;
+      font-weight: bold;
+      margin-bottom: 25px;
+    }
+
+    .fullscreen-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 1.5rem;
+      z-index: 10;
+    }
+    .fullscreen-btn:hover {
+      color: #fff;
+    }
+
+    .controls,
+    .presets {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .presets {
+      margin-bottom: 20px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+
+    .btn-preset {
+      background-color: #444;
+      color: #ccc;
+    }
+    .btn-preset:hover {
+      background-color: #555;
+      color: #fff;
+    }
+    .btn-main {
+      background-color: var(--accent-color);
+      color: white;
+      padding: 15px 40px;
+      font-size: 1.2rem;
+    }
+    .btn-main:hover {
+      filter: brightness(1.1);
+    }
+    .btn-cancel {
+      background-color: var(--danger-color);
+      color: white;
+      display: none;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+    }
+    .btn-pause {
+      background-color: var(--warning-color);
+    }
+
+    @media (max-width: 600px) {
+      #countdown-display {
+        font-size: 13vw;
+      }
+      input[type="number"] {
+        width: 60px;
+        font-size: 2rem;
+      }
+      .separator {
+        font-size: 2rem;
+      }
+      .timer-wrapper {
+        padding: 20px;
+      }
+    }
+
+    /* ========= 慶祝動畫（結束畫面） ========= */
+    #celebration-screen {
+      position: fixed;
+      inset: 0;
+      display: none; /* 倒數結束才顯示 */
+      background-color: #87ceeb;
+      overflow: hidden;
+      z-index: 9999;
+      font-family: Arial, sans-serif;
+    }
+
+    #celebration-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 0;
+    }
+
+    #celebration-loading {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      text-align: center;
+      color: #333;
+      pointer-events: none;
+      z-index: 10;
+      transform: translateY(-50%);
+    }
+
+    #celebration-message {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #celebration-message h1 {
+      font-size: 6em;
+      color: #ffffff;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: 3px 3px 0px #ff9933, 6px 6px 10px rgba(0, 0, 0, 0.5);
+      margin: 0;
+      padding: 20px;
+      opacity: 0;
+      transform: translateY(-50px) scale(0.8);
+      animation: fadeInDown 1s ease-out forwards;
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    #celebration-actions {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 22px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      z-index: 30;
+      pointer-events: auto;
+    }
+
+    .cele-btn {
+      background: rgba(0, 0, 0, 0.35);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+      backdrop-filter: blur(6px);
+    }
+    .cele-btn:hover {
+      background: rgba(0, 0, 0, 0.5);
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div class="container" id="timer-screen">
+    <h1 id="title-display" contenteditable="true" spellcheck="false">倒數計時</h1>
+
+    <div class="presets">
+      <button class="btn-preset" onclick="focusTitle()">編輯標題</button>
+      <button class="btn-preset" onclick="setPreset(1, 0)">設 1 小時</button>
+      <button class="btn-preset" onclick="setPreset(1, 30)">設 1.5 小時</button>
+    </div>
+
+    <div class="timer-wrapper">
+      <button class="fullscreen-btn" onclick="toggleFullscreen()" title="切換全螢幕">⛶</button>
+
+      <div id="input-area" class="input-group">
+        <div class="input-wrapper">
+          <input type="number" id="hours" min="0" value="0" placeholder="00" onchange="validate(this)" />
+          <span class="label">時</span>
+        </div>
+        <span class="separator">:</span>
+        <div class="input-wrapper">
+          <input type="number" id="minutes" min="0" max="59" value="0" placeholder="00" onchange="validate(this)" />
+          <span class="label">分</span>
+        </div>
+        <span class="separator">:</span>
+        <div class="input-wrapper">
+          <input type="number" id="seconds" min="0" max="59" value="0" placeholder="00" onchange="validate(this)" />
+          <span class="label">秒</span>
+        </div>
+      </div>
+
+      <div id="countdown-display">00:00:00</div>
+    </div>
+
+    <div class="controls">
+      <button id="main-btn" class="btn-main" onclick="toggleTimer()">開始</button>
+      <button id="cancel-btn" class="btn-cancel" onclick="cancelTimer()">取消</button>
+    </div>
+  </div>
+
+  <div id="celebration-screen" aria-hidden="true">
+    <div id="celebration-loading">正在準備慶祝煙火...</div>
+    <canvas id="celebration-canvas"></canvas>
+
+    <div id="celebration-message">
+      <h1 id="celebration-text">很棒！時間到！</h1>
+    </div>
+
+    <div id="celebration-actions">
+      <button class="cele-btn" onclick="hideCelebration()">回到計時器</button>
+      <button class="cele-btn" onclick="toggleFullscreen()">切換全螢幕</button>
+    </div>
+  </div>
+
+  <script>
+    let timerInterval = null;
+    let totalSeconds = 0;
+    let isRunning = false;
+    let isPaused = false;
+
+    const els = {
+      hours: document.getElementById("hours"),
+      minutes: document.getElementById("minutes"),
+      seconds: document.getElementById("seconds"),
+      display: document.getElementById("countdown-display"),
+      inputArea: document.getElementById("input-area"),
+      mainBtn: document.getElementById("main-btn"),
+      cancelBtn: document.getElementById("cancel-btn"),
+      title: document.getElementById("title-display"),
+      timerScreen: document.getElementById("timer-screen"),
+      celebration: document.getElementById("celebration-screen"),
+      celebrationText: document.getElementById("celebration-text"),
+    };
+
+    function pad(num) {
+      return num.toString().padStart(2, "0");
+    }
+
+    function updateDisplay(h, m, s) {
+      els.display.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+      document.title = `${pad(h)}:${pad(m)}:${pad(s)} - ${els.title.innerText}`;
+    }
+
+    function toggleTimer() {
+      if (!isRunning && !isPaused) startTimer();
+      else if (isRunning && !isPaused) pauseTimer();
+      else if (isRunning && isPaused) resumeTimer();
+    }
+
+    function startTimer() {
+      let h = parseInt(els.hours.value) || 0;
+      let m = parseInt(els.minutes.value) || 0;
+      let s = parseInt(els.seconds.value) || 0;
+      totalSeconds = h * 3600 + m * 60 + s;
+
+      if (totalSeconds <= 0) {
+        alert("請輸入時間！");
+        return;
+      }
+
+      isRunning = true;
+      isPaused = false;
+
+      els.inputArea.style.display = "none";
+      els.display.style.display = "block";
+      els.cancelBtn.style.display = "block";
+      updateButtonState("暫停", "btn-pause");
+
+      tick();
+      timerInterval = setInterval(tick, 1000);
+    }
+
+    function tick() {
+      if (totalSeconds < 0) {
+        finishTimer();
+        return;
+      }
+      let h = Math.floor(totalSeconds / 3600);
+      let m = Math.floor((totalSeconds % 3600) / 60);
+      let s = totalSeconds % 60;
+      updateDisplay(h, m, s);
+      totalSeconds--;
+    }
+
+    function pauseTimer() {
+      isPaused = true;
+      clearInterval(timerInterval);
+      updateButtonState("繼續", "btn-main");
+    }
+
+    function resumeTimer() {
+      isPaused = false;
+      updateButtonState("暫停", "btn-pause");
+      tick();
+      timerInterval = setInterval(tick, 1000);
+    }
+
+    function cancelTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      isPaused = false;
+      totalSeconds = 0;
+
+      els.display.style.display = "none";
+      els.inputArea.style.display = "flex";
+      els.cancelBtn.style.display = "none";
+      document.title = "倒數計時器";
+      updateButtonState("開始", "btn-main");
+    }
+
+    function updateButtonState(text, className) {
+      els.mainBtn.textContent = text;
+      els.mainBtn.className = className;
+      if (className === "btn-pause") els.mainBtn.style.backgroundColor = "var(--warning-color)";
+      else els.mainBtn.style.backgroundColor = "var(--accent-color)";
+    }
+
+    function toggleFullscreen() {
+      const docElm = document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (docElm.requestFullscreen) docElm.requestFullscreen();
+        else if (docElm.webkitRequestFullScreen) docElm.webkitRequestFullScreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    }
+
+    function focusTitle() {
+      els.title.focus();
+      document.execCommand("selectAll", false, null);
+    }
+
+    function setPreset(h, m) {
+      if (isRunning) {
+        if (!confirm("計時正在進行中，要重置時間嗎？")) return;
+        cancelTimer();
+      }
+      els.hours.value = h;
+      els.minutes.value = m;
+      els.seconds.value = 0;
+    }
+
+    function validate(input) {
+      let v = parseInt(input.value);
+      if (isNaN(v) || v < 0) input.value = 0;
+      if (input.id !== "hours" && v > 59) input.value = 59;
+    }
+
+    els.title.addEventListener("input", () => {
+      if (!isRunning) document.title = els.title.innerText;
+    });
+
+    function showCelebration() {
+      els.celebration.style.display = "block";
+      els.celebration.setAttribute("aria-hidden", "false");
+      
+      // 啟動 3D 慶祝動畫
+      if (window.startCelebration) window.startCelebration();
+    }
+
+    function hideCelebration() {
+      els.celebration.style.display = "none";
+      els.celebration.setAttribute("aria-hidden", "true");
+      
+      // 停止動畫、釋放資源
+      if (window.stopCelebration) window.stopCelebration();
+      document.title = "倒數計時器";
+    }
+
+    function finishTimer() {
+      clearInterval(timerInterval);
+      
+      // 音效播放函數已移除 (playFinishSound)
+
+      // 重置狀態
+      cancelTimer();
+
+      // 顯示慶祝動畫畫面
+      showCelebration();
+    }
+
+    // 讓慶祝畫面上的按鈕可以呼叫
+    window.hideCelebration = hideCelebration;
+  </script>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    let started = false;
+    let stopped = false;
+
+    // three 物件引用（方便 stop）
+    let scene, camera, renderer, controls;
+    let rafId = null;
+
+    // 動態物件
+    let chimneyRef = null;
+    const allWheels = [];
+    const steamParticles = [];
+    const animals = [];
+    const fireworks = [];
+
+    // 參數
+    const trackRadius = 12;
+    const groundRadius = 80;
+
+    // DOM
+    const canvas = document.getElementById("celebration-canvas");
+    const loadingEl = document.getElementById("celebration-loading");
+
+    function initCelebration() {
+      // --- 1. 場景與相機 ---
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87ceeb);
+      scene.fog = new THREE.Fog(0x87ceeb, 30, 100);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 300);
+      camera.position.set(0, 8, 28);
+
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // --- 2. 燈光 ---
+      const ambientLight = new THREE.HemisphereLight(0xffffff, 0x000000, 0.65);
+      scene.add(ambientLight);
+
+      const sunLight = new THREE.DirectionalLight(0xffd1a6, 0.9);
+      sunLight.position.set(30, 50, -30);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.set(2048, 2048);
+      sunLight.shadow.camera.top = 70;
+      sunLight.shadow.camera.bottom = -70;
+      sunLight.shadow.camera.left = -70;
+      sunLight.shadow.camera.right = 70;
+      sunLight.shadow.bias = -0.001;
+      scene.add(sunLight);
+
+      // --- 3. 材質庫 ---
+      const mats = {
+        track: new THREE.MeshToonMaterial({ color: 0x5e6e78 }),
+        sleeper: new THREE.MeshToonMaterial({ color: 0x8b5a2b }),
+        grass: new THREE.MeshToonMaterial({ color: 0x7cfc00 }),
+        treeTrunk: new THREE.MeshToonMaterial({ color: 0x8b4513 }),
+        treeLeaf: new THREE.MeshToonMaterial({ color: 0x228b22 }),
+        grassTuft: new THREE.MeshToonMaterial({ color: 0x5cb85c }),
+        flowerStem: new THREE.MeshToonMaterial({ color: 0x228b22 }),
+        mushroomStem: new THREE.MeshToonMaterial({ color: 0xffffee }),
+        mushroomCap: new THREE.MeshToonMaterial({ color: 0xff4444 }),
+        sheepWool: new THREE.MeshToonMaterial({ color: 0xffffff }),
+        sheepSkin: new THREE.MeshToonMaterial({ color: 0x333333 }),
+        cowWhite: new THREE.MeshToonMaterial({ color: 0xf0f0f0 }),
+        cowBlack: new THREE.MeshToonMaterial({ color: 0x222222 }),
+        cowHorn: new THREE.MeshToonMaterial({ color: 0xdddddd }),
+        body: new THREE.MeshToonMaterial({ color: 0xe74c3c }),
+        cabin: new THREE.MeshToonMaterial({ color: 0x3498db }),
+        wheel: new THREE.MeshToonMaterial({ color: 0x222222 }),
+        chimney: new THREE.MeshToonMaterial({ color: 0x2c3e50 }),
+        gold: new THREE.MeshToonMaterial({ color: 0xf1c40f }),
+        gift1: new THREE.MeshToonMaterial({ color: 0x2ecc71 }),
+        gift2: new THREE.MeshToonMaterial({ color: 0x9b59b6 }),
+        cloud: new THREE.MeshToonMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }),
+        mountain: new THREE.MeshToonMaterial({ color: 0x2e8b57 }),
+        mountainTop: new THREE.MeshToonMaterial({ color: 0xffffff }),
+        sun: new THREE.MeshBasicMaterial({ color: 0xffaa00 }),
+      };
+
+      // --- 4. 環境背景 ---
+      const ground = new THREE.Mesh(new THREE.CylinderGeometry(groundRadius, groundRadius, 0.5, 64), mats.grass);
+      ground.position.y = -0.3;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 32), mats.sun);
+      sunMesh.position.set(40, 30, -50);
+      scene.add(sunMesh);
+
+      function createCloud(x, y, z, scale) {
+        const cloudGroup = new THREE.Group();
+        const geo = new THREE.SphereGeometry(1.5, 12, 12);
+        const p1 = new THREE.Mesh(geo, mats.cloud);
+        const p2 = new THREE.Mesh(geo, mats.cloud);
+        p2.position.set(1.2, -0.5, 0);
+        p2.scale.set(0.8, 0.8, 0.8);
+        const p3 = new THREE.Mesh(geo, mats.cloud);
+        p3.position.set(-1.2, -0.3, 0.5);
+        p3.scale.set(0.9, 0.9, 0.9);
+        const p4 = new THREE.Mesh(geo, mats.cloud);
+        p4.position.set(0, 0.8, -0.5);
+        p4.scale.set(0.7, 0.7, 0.7);
+        cloudGroup.add(p1, p2, p3, p4);
+        cloudGroup.position.set(x, y, z);
+        cloudGroup.scale.set(scale, scale, scale);
+        cloudGroup.lookAt(0, y, 0);
+        scene.add(cloudGroup);
+      }
+      for (let i = 0; i < 25; i++) {
+        createCloud((Math.random() - 0.5) * 120, 20 + Math.random() * 25, -30 + (Math.random() - 0.5) * 100, 0.8 + Math.random() * 0.5);
+      }
+
+      function createMountainRange(centerAngle, spreadAngle, count) {
+        const rangeGroup = new THREE.Group();
+        const dist = 55;
+        for (let i = 0; i < count; i++) {
+          const ratio = i / (count - 1);
+          const angle = centerAngle + (ratio - 0.5) * spreadAngle;
+          const h = 10 + Math.random() * 12;
+          const rBase = h * 0.7 + Math.random() * 4;
+          const rTop = rBase * 0.25;
+          const geo = new THREE.CylinderGeometry(rTop, rBase, h, 7);
+          const mesh = new THREE.Mesh(geo, mats.mountain);
+          const x = Math.cos(angle) * dist + (Math.random() - 0.5) * 8;
+          const z = Math.sin(angle) * dist + (Math.random() - 0.5) * 8;
+          mesh.position.set(x, h / 2 - 1.0, z);
+          mesh.rotation.y = Math.random() * Math.PI;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          rangeGroup.add(mesh);
+          if (h > 16) {
+            const tip = new THREE.Mesh(new THREE.CylinderGeometry(rTop * 0.8, rTop * 1.1, 0.8, 7), mats.mountainTop);
+            tip.position.set(x, mesh.position.y + h / 2 + 0.2, z);
+            tip.rotation.y = mesh.rotation.y;
+            rangeGroup.add(tip);
+          }
+        }
+        scene.add(rangeGroup);
+      }
+      createMountainRange(Math.PI, Math.PI / 1.5, 20);
+      createMountainRange(Math.PI / 3, Math.PI / 3, 12);
+      createMountainRange(-Math.PI / 3, Math.PI / 3, 12);
+
+      function createTree(x, z) {
+        const tree = new THREE.Group();
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.5, 8), mats.treeTrunk);
+        trunk.position.y = 1.25;
+        trunk.castShadow = true;
+        tree.add(trunk);
+        const leafGeo = new THREE.SphereGeometry(1.5, 8, 8);
+        const l1 = new THREE.Mesh(leafGeo, mats.treeLeaf);
+        l1.position.y = 3.5;
+        l1.castShadow = true;
+        tree.add(l1);
+        const l2 = l1.clone();
+        l2.position.set(0.8, 3.0, 0.8);
+        l2.scale.set(0.8, 0.8, 0.8);
+        tree.add(l2);
+        const l3 = l1.clone();
+        l3.position.set(-0.8, 3.2, -0.6);
+        l3.scale.set(0.9, 0.9, 0.9);
+        tree.add(l3);
+        tree.position.set(x, -0.3, z);
+        tree.rotation.y = Math.random() * Math.PI;
+        tree.scale.setScalar(0.8 + Math.random() * 0.4);
+        scene.add(tree);
+      }
+      for (let i = 0; i < 40; i++) {
+        const x = (Math.random() - 0.5) * 120;
+        const z = -20 - Math.random() * 50;
+        if (Math.sqrt(x * x + z * z) > 18) createTree(x, z);
+      }
+
+      function createFlower(x, z) {
+        const flower = new THREE.Group();
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.6), mats.flowerStem);
+        stem.position.y = 0.3;
+        flower.add(stem);
+        const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
+        const petalMat = new THREE.MeshToonMaterial({ color });
+        const petal = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2), petalMat);
+        petal.position.y = 0.6;
+        flower.add(petal);
+        flower.position.set(x, -0.1, z);
+        flower.rotation.y = Math.random() * Math.PI;
+        flower.rotation.z = (Math.random() - 0.5) * 0.3;
+        scene.add(flower);
+      }
+
+      function createMushroom(x, z) {
+        const mush = new THREE.Group();
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.5), mats.mushroomStem);
+        stem.position.y = 0.25;
+        mush.add(stem);
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), mats.mushroomCap);
+        cap.position.y = 0.5;
+        mush.add(cap);
+        const dotGeo = new THREE.SphereGeometry(0.05, 4, 4);
+        for (let k = 0; k < 3; k++) {
+          const dot = new THREE.Mesh(dotGeo, mats.mushroomStem);
+          dot.position.set((Math.random() - 0.5) * 0.3, 0.65 + Math.random() * 0.1, (Math.random() - 0.5) * 0.3);
+          mush.add(dot);
+        }
+        mush.position.set(x, -0.1, z);
+        mush.rotation.z = (Math.random() - 0.5) * 0.4;
+        mush.scale.setScalar(0.8 + Math.random() * 0.4);
+        scene.add(mush);
+      }
+
+      for (let i = 0; i < 80; i++) {
+        const r = Math.random() * groundRadius;
+        const angle = Math.random() * Math.PI * 2;
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+        if (Math.abs(r - trackRadius) > 2.5) {
+          if (Math.random() > 0.3) createFlower(x, z);
+          else createMushroom(x, z);
+        }
+      }
+
+      // --- 動物系統 ---
+      function createSheep(x, z) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+        const bodyGroup = new THREE.Group();
+        group.add(bodyGroup);
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), mats.sheepWool);
+        body.position.y = 0.6;
+        body.castShadow = true;
+        bodyGroup.add(body);
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 0.8, 0.5);
+        bodyGroup.add(headGroup);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.5), mats.sheepSkin);
+        head.castShadow = true;
+        headGroup.add(head);
+        const legGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6);
+        const legs = [];
+        [
+          [0.3, 0.3],
+          [0.3, -0.3],
+          [-0.3, 0.3],
+          [-0.3, -0.3],
+        ].forEach((pos) => {
+          const leg = new THREE.Mesh(legGeo, mats.sheepSkin);
+          leg.position.set(pos[0], 0.3, pos[1]);
+          legs.push(leg);
+          group.add(leg);
+        });
+        scene.add(group);
+        animals.push({ type: "sheep", group, bodyGroup, headGroup, legs, state: "idle", timer: Math.random() * 3, targetRot: Math.random() * Math.PI * 2, speed: 0 });
+      }
+
+      function createCow(x, z) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+        const bodyGroup = new THREE.Group();
+        group.add(bodyGroup);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 1.4), mats.cowWhite);
+        body.position.y = 0.8;
+        body.castShadow = true;
+        bodyGroup.add(body);
+        const spot1 = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.5, 0.5), mats.cowBlack);
+        spot1.position.set(0, 0.8, 0.2);
+        bodyGroup.add(spot1);
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 1.3, 0.9);
+        bodyGroup.add(headGroup);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.6), mats.cowBlack);
+        head.castShadow = true;
+        headGroup.add(head);
+        const hornGeo = new THREE.ConeGeometry(0.06, 0.3, 8);
+        const h1 = new THREE.Mesh(hornGeo, mats.cowHorn);
+        h1.position.set(0.2, 0.4, 0);
+        h1.rotation.z = -0.3;
+        headGroup.add(h1);
+        const h2 = new THREE.Mesh(hornGeo, mats.cowHorn);
+        h2.position.set(-0.2, 0.4, 0);
+        h2.rotation.z = 0.3;
+        headGroup.add(h2);
+        const legGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.7);
+        const legs = [];
+        [
+          [0.3, 0.5],
+          [0.3, -0.5],
+          [-0.3, 0.5],
+          [-0.3, -0.5],
+        ].forEach((pos) => {
+          const leg = new THREE.Mesh(legGeo, mats.cowWhite);
+          leg.position.set(pos[0], 0.35, pos[1]);
+          legs.push(leg);
+          group.add(leg);
+        });
+        scene.add(group);
+        animals.push({ type: "cow", group, bodyGroup, headGroup, legs, state: "idle", timer: Math.random() * 3, targetRot: Math.random() * Math.PI * 2, speed: 0 });
+      }
+
+      createSheep(3, 3);
+      createSheep(-4, 2);
+      createCow(0, -5);
+      createCow(18, 5);
+      createSheep(22, -10);
+      createSheep(-20, 15);
+      createCow(-18, -8);
+
+      // --- 鐵軌與火車 ---
+      const rail1 = new THREE.Mesh(new THREE.TorusGeometry(trackRadius, 0.15, 16, 100), mats.track);
+      rail1.rotation.x = Math.PI / 2;
+      rail1.position.y = 0.1;
+      rail1.receiveShadow = true;
+      scene.add(rail1);
+
+      const sleeperGeo = new THREE.BoxGeometry(1.4, 0.1, 0.4);
+      for (let i = 0; i < 60; i++) {
+        const sleeper = new THREE.Mesh(sleeperGeo, mats.sleeper);
+        const angle = (i / 60) * Math.PI * 2;
+        sleeper.position.set(Math.cos(angle) * trackRadius, 0, Math.sin(angle) * trackRadius);
+        sleeper.rotation.y = -angle;
+        sleeper.receiveShadow = true;
+        scene.add(sleeper);
+      }
+
+      function createWheels(parent, z, big) {
+        const r = big ? 0.6 : 0.35;
+        const geo = new THREE.CylinderGeometry(r, r, 0.2, 16).rotateZ(Math.PI / 2);
+        const wL = new THREE.Mesh(geo, mats.wheel);
+        wL.position.set(0.6, r, z);
+        wL.castShadow = true;
+        const wR = new THREE.Mesh(geo, mats.wheel);
+        wR.position.set(-0.6, r, z);
+        wR.castShadow = true;
+        parent.add(wL, wR);
+        allWheels.push({ l: wL, r: wR, big });
+      }
+
+      function createTrainCar(type, offsetAngle) {
+        const pivot = new THREE.Group();
+        pivot.rotation.y = offsetAngle;
+        scene.add(pivot);
+
+        const group = new THREE.Group();
+        group.position.x = trackRadius;
+        group.rotation.y = Math.PI;
+        pivot.add(group);
+
+        if (type === "loco") {
+          const boiler = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 2.5, 16).rotateX(Math.PI / 2), mats.body);
+          boiler.position.set(0, 0.9, 0);
+          boiler.castShadow = true;
+          group.add(boiler);
+
+          const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.0, 1.5), mats.cabin);
+          cabin.position.set(0, 1.3, -1.5);
+          cabin.castShadow = true;
+          group.add(cabin);
+
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.2, 1.8), mats.body);
+          roof.position.set(0, 2.4, -1.5);
+          roof.castShadow = true;
+          group.add(roof);
+
+          const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.8, 12), mats.chimney);
+          chimney.position.set(0, 1.8, 0.8);
+          chimney.castShadow = true;
+          group.add(chimney);
+          chimneyRef = chimney;
+
+          const light = new THREE.Mesh(new THREE.SphereGeometry(0.3), mats.gold);
+          light.position.set(0, 0.9, 1.3);
+          group.add(light);
+
+          createWheels(group, -0.5, true);
+          createWheels(group, 1.0, false);
+        } else {
+          const link = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.8), new THREE.MeshToonMaterial({ color: 0x333333 }));
+          link.position.set(0, 0.5, 1.6);
+          group.add(link);
+
+          const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 2.0), type === "w1" ? mats.cabin : mats.body);
+          body.position.y = 0.8;
+          body.castShadow = true;
+          group.add(body);
+
+          createWheels(group, 0.6, false);
+          createWheels(group, -0.6, false);
+
+          if (type === "w1") {
+            const c1 = new THREE.Mesh(new THREE.SphereGeometry(0.45), mats.gold);
+            c1.position.set(0, 1.3, 0.5);
+            group.add(c1);
+            const c2 = new THREE.Mesh(new THREE.SphereGeometry(0.45), mats.body);
+            c2.position.set(0, 1.3, -0.5);
+            group.add(c2);
+          } else {
+            const g = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+            const g1 = new THREE.Mesh(g, mats.gift1);
+            g1.position.set(-0.3, 1.1, 0.4);
+            g1.rotateY(0.5);
+            group.add(g1);
+            const g2 = new THREE.Mesh(g, mats.gift2);
+            g2.position.set(0.2, 1.2, -0.3);
+            g2.rotateY(-0.3);
+            group.add(g2);
+          }
+        }
+
+        return { pivot, group };
+      }
+
+      const spacing = 3.2 / trackRadius;
+      const trainCars = [createTrainCar("loco", 0), createTrainCar("w1", -spacing), createTrainCar("w2", -spacing * 2)];
+
+      // 蒸汽
+      const steamMatBase = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+      function spawnSteam() {
+        if (!chimneyRef) return;
+        const worldPos = new THREE.Vector3();
+        chimneyRef.getWorldPosition(worldPos);
+        worldPos.y += 0.4;
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.25 + Math.random() * 0.1, 8, 8), steamMatBase.clone());
+        mesh.position.copy(worldPos);
+        mesh.position.x += (Math.random() - 0.5) * 0.15;
+        mesh.position.z += (Math.random() - 0.5) * 0.15;
+        scene.add(mesh);
+        steamParticles.push({ mesh, life: 1.0, driftX: (Math.random() - 0.5) * 0.01 });
+      }
+      function updateSteam() {
+        for (let i = steamParticles.length - 1; i >= 0; i--) {
+          const p = steamParticles[i];
+          p.life -= 0.007;
+          if (p.life <= 0) {
+            scene.remove(p.mesh);
+            steamParticles.splice(i, 1);
+          } else {
+            p.mesh.position.y += 0.025;
+            p.mesh.position.x += p.driftX;
+            const s = 1 + (1 - p.life) * 2.5;
+            p.mesh.scale.set(s, s, s);
+            p.mesh.material.opacity = p.life * 0.5;
+          }
+        }
+      }
+
+      // 煙火
+      const fireworkColors = [0xff0000, 0x00ff00, 0xffff00, 0x00ffff, 0xff00ff, 0xffa500];
+      const fireworkGeo = new THREE.SphereGeometry(0.3, 6, 6);
+      function createFirework(x, y, z) {
+        const color = fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
+        const material = new THREE.MeshBasicMaterial({ color });
+        const particleCount = 60;
+        for (let i = 0; i < particleCount; i++) {
+          const mesh = new THREE.Mesh(fireworkGeo, material);
+          mesh.position.set(x, y, z);
+          const velocity = new THREE.Vector3((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5);
+          velocity.y += 0.15;
+          scene.add(mesh);
+          fireworks.push({ mesh, velocity, life: 1.2 });
+        }
+      }
+      function updateFireworks() {
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+          const fw = fireworks[i];
+          fw.life -= 0.006;
+          if (fw.life <= 0) {
+            scene.remove(fw.mesh);
+            fireworks.splice(i, 1);
+          } else {
+            fw.mesh.position.add(fw.velocity);
+            fw.velocity.y -= 0.005;
+            fw.velocity.multiplyScalar(0.98);
+            fw.mesh.scale.setScalar(fw.life);
+          }
+        }
+      }
+
+      // 動物更新
+      function updateAnimals() {
+        const dt = 0.016;
+        const now = Date.now() * 0.001;
+        animals.forEach((anim) => {
+          anim.timer -= dt;
+          if (anim.timer <= 0) {
+            const r = Math.random();
+            if (r < 0.4) {
+              anim.state = "idle";
+              anim.timer = 2 + Math.random() * 3;
+              anim.speed = 0;
+            } else if (r < 0.7) {
+              anim.state = "walk";
+              anim.timer = 3 + Math.random() * 4;
+              anim.targetRot = Math.random() * Math.PI * 2;
+              anim.speed = 0.015;
+            } else {
+              anim.state = "eat";
+              anim.timer = 3 + Math.random() * 3;
+              anim.speed = 0;
+            }
+          }
+
+          if (anim.state === "walk") {
+            let diff = anim.targetRot - anim.group.rotation.y;
+            if (diff > Math.PI) diff -= Math.PI * 2;
+            if (diff < -Math.PI) diff += Math.PI * 2;
+            anim.group.rotation.y += diff * 0.02;
+            anim.group.translateZ(anim.speed);
+
+            const dist = anim.group.position.length();
+            if (dist > 10 && dist < 14) {
+              anim.group.translateZ(-anim.speed * 2);
+              anim.targetRot += Math.PI;
+            }
+            if (dist > 30) {
+              anim.targetRot = Math.atan2(-anim.group.position.z, -anim.group.position.x);
+            }
+          }
+
+          if (anim.state === "walk") {
+            const legSpeed = 10;
+            anim.legs[0].rotation.x = Math.sin(now * legSpeed) * 0.5;
+            anim.legs[1].rotation.x = Math.cos(now * legSpeed) * 0.5;
+            anim.legs[2].rotation.x = Math.cos(now * legSpeed) * 0.5;
+            anim.legs[3].rotation.x = Math.sin(now * legSpeed) * 0.5;
+            anim.bodyGroup.position.y = Math.abs(Math.sin(now * legSpeed * 2)) * 0.05;
+            anim.headGroup.rotation.x = THREE.MathUtils.lerp(anim.headGroup.rotation.x, 0, 0.1);
+          } else if (anim.state === "eat") {
+            anim.legs.forEach((l) => (l.rotation.x = THREE.MathUtils.lerp(l.rotation.x, 0, 0.1)));
+            anim.bodyGroup.position.y = THREE.MathUtils.lerp(anim.bodyGroup.position.y, 0, 0.1);
+            anim.headGroup.rotation.x = THREE.MathUtils.lerp(anim.headGroup.rotation.x, Math.PI / 4, 0.05);
+            if (Math.sin(now * 10) > 0.8) {
+              anim.headGroup.position.y = anim.type === "cow" ? 1.25 : 0.85;
+            } else {
+              anim.headGroup.position.y = anim.type === "cow" ? 1.3 : 0.8;
+            }
+          } else {
+            anim.legs.forEach((l) => (l.rotation.x = THREE.MathUtils.lerp(l.rotation.x, 0, 0.1)));
+            anim.headGroup.rotation.x = THREE.MathUtils.lerp(anim.headGroup.rotation.x, 0, 0.1);
+            anim.bodyGroup.position.y = THREE.MathUtils.lerp(anim.bodyGroup.position.y, 0, 0.1);
+          }
+        });
+      }
+
+      // 控制器
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02;
+      controls.minPolarAngle = Math.PI / 3;
+      controls.target.set(0, 5, 0);
+
+      // 狀態
+      let progress = 0;
+      let frameCount = 0;
+
+      function animate() {
+        if (stopped) return;
+        rafId = requestAnimationFrame(animate);
+
+        progress += 0.002;
+
+        trainCars[0].pivot.rotation.y = progress;
+        trainCars[1].pivot.rotation.y = progress - spacing;
+        trainCars[2].pivot.rotation.y = progress - spacing * 2;
+
+        allWheels.forEach((w) => {
+          const s = 0.05 / (w.big ? 0.6 : 0.35);
+          w.l.rotation.x += s;
+          w.r.rotation.x += s;
+        });
+
+        trainCars.forEach((c, i) => {
+          c.group.position.y = Math.sin(Date.now() * 0.005 + i) * 0.03;
+          c.group.rotation.z = -0.05;
+        });
+
+        frameCount++;
+        if (frameCount % 35 === 0) spawnSteam();
+        updateSteam();
+        updateAnimals();
+
+        // 約 3 秒一次煙火（180 幀左右）
+        if (frameCount % 180 === 0) {
+          const x = (Math.random() - 0.5) * 40;
+          const y = 12 + Math.random() * 10;
+          const z = -10 + (Math.random() - 0.5) * 40;
+          createFirework(x, y, z);
+        }
+        updateFireworks();
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener("resize", onResize, { passive: true });
+      function onResize() {
+        if (!renderer || !camera) return;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      loadingEl.style.display = "none";
+      animate();
+    }
+
+    window.startCelebration = () => {
+      if (started) return;
+      started = true;
+      stopped = false;
+      loadingEl.style.display = "block";
+      // 小延遲讓「正在準備」看得見（可拿掉）
+      setTimeout(() => {
+        if (stopped) return;
+        initCelebration();
+      }, 80);
+    };
+
+    window.stopCelebration = () => {
+      stopped = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+
+      // 不做完整 dispose 也可以（簡單版本），但這樣回來再進慶祝會疊場景。
+      // 這裡做基本清掉 canvas 畫面：
+      try {
+        if (renderer) renderer.dispose();
+      } catch (e) {}
+
+      // 把參考清空，允許下次重新 init
+      started = false;
+      scene = camera = renderer = controls = null;
+
+      // 清掉陣列
+      allWheels.length = 0;
+      steamParticles.length = 0;
+      animals.length = 0;
+      fireworks.length = 0;
+      chimneyRef = null;
+
+      // 清空畫面（避免殘影）
+      const ctx2d = canvas.getContext("2d");
+      if (ctx2d) ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  </script>
+</body>
+</html>
